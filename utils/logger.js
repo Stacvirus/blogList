@@ -1,9 +1,9 @@
-function info(...params){
-    console.log(...params)
+function info(...params) {
+    process.env.NODE_ENV !== 'test' && console.log(...params)
 }
 
-function error(...params){
-    console.error(...params)
+function error(...params) {
+    process.env.NODE_ENV !== 'test' && console.error(...params)
 }
 
-module.exports = {info, error}
+module.exports = { info, error }
