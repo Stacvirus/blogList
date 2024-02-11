@@ -2,7 +2,7 @@ const supertest = require('supertest');
 const Blog = require('../models/blog');
 const app = require('../app');
 const api = supertest(app);
-const url = '/Blog/publications';
+const url = '/api/blogs';
 const helper = require('./helper');
 
 
@@ -83,3 +83,4 @@ describe('verifying blog properties', () => {
         expect(updatedBlog._body.likes).toBe(13);
     }, 100000);
 });
+
