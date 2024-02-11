@@ -16,10 +16,11 @@ blogsRouter.get('/', async (request, response, next) => {
 
 blogsRouter.post('/', async (request, response, next) => {
     const object = request.body;
-    const user = request.user;
 
     if (!object.likes) object.likes = 0;
     if (!object.title) return response.status(400).end();
+
+    const user = request.user;
 
     const blog = new Blog({
         title: object.title,

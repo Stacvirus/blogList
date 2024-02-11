@@ -3,13 +3,21 @@ const Blog = require('../models/blog');
 const app = require('../app');
 const api = supertest(app);
 const url = '/api/blogs';
+const login = '/api/login'
 const helper = require('./helper');
-
+let token = null;
 
 beforeEach(async () => {
     await Blog.deleteMany({});
     const blogObject = helper.initBlogs.map(blog => new Blog(blog));
     await Blog.insertMany(blogObject);
+    const userLogin = { username: 'root', password: 'stacvirus' };
+    const userLoged = await api.post(login).send(userLogin)
+    expect(201);
+
+    token = userLoged.text.split(':')[1].split(',')[0].replace('""', '');
+    token = token.split('"')[1];
+
 }, 100000);
 
 describe('at the init stage', () => {
@@ -31,7 +39,9 @@ describe('itermediate stage in DB', () => {
             url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
             likes: 22,
         }
-        await api.post(url).send(newObject);
+        await api.post(url).set('Authorization', `Bearer ${token}`).send(newObject)
+            .expect(201);
+
         const res = await helper.getAllBlogs();
         const contents = res.map(r => r.title);
         expect(contents).toContain('Binary Search Tree');
@@ -47,7 +57,8 @@ describe('verifying blog properties', () => {
             author: "Edsger W. Dijkstra",
             url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
         }
-        await api.post(url).send(newObject);
+        await api.post(url).set('Authorization', `Bearer ${token}`).send(newObject);
+        expect(201)
         const res = await helper.getAllBlogs();
         expect(0).toBe(res[res.length - 1].likes);
     });
@@ -57,8 +68,9 @@ describe('verifying blog properties', () => {
             author: "Edsger W. Dijkstra",
             url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
         };
-        await api.post(url).send(newObject)
+        await api.post(url).set('Authorization', `Bearer ${token}`).send(newObject)
             .expect(400)
+
         const res = await helper.getAllBlogs();
         expect(res).toHaveLength(helper.initBlogs.length);
     });
@@ -69,8 +81,8 @@ describe('verifying blog properties', () => {
             author: "Edsger W. Dijkstra",
             url: "http://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD808.html",
         };
-        const newBlob = await api.post(url).send(newObject);
-        await api.delete(`${url}/${newBlob._body.id}`)
+        const newBlob = await api.post(url).set('Authorization', `Bearer ${token}`).send(newObject);
+        await api.delete(`${url}/${newBlob._body.id}`).set('Authorization', `Bearer ${token}`)
             .expect(204);
         const res = await helper.getAllBlogs();
         expect(res).toHaveLength(helper.initBlogs.length);
@@ -79,8 +91,16 @@ describe('verifying blog properties', () => {
     test('update a blog', async () => {
         const blogs = await helper.getAllBlogs();
         const id = blogs[1].id;
-        const updatedBlog = await api.put(`${url}/${id}`).send({ likes: 13 });
+        const updatedBlog = await api.put(`${url}/${id}`).set('Authorization', `Bearer ${token}`).send({ likes: 13 });
         expect(updatedBlog._body.likes).toBe(13);
     }, 100000);
+
+    test('if token omitted status 401', async () => {
+        const newBlog = helper.initBlogs[0];
+        const blogs = helper.getAllBlogs();
+
+        await api.post(url).send(newBlog)
+            .expect(401);
+    });
 });
 
