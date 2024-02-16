@@ -14,11 +14,11 @@ blogsRouter.get('/', async (request, response, next) => {
     }
 });
 
-blogsRouter.post('/', async (request, response, next) => {
+blogsRouter.post('/', middleware.userExtractor, async (request, response, next) => {
     const object = request.body;
 
     if (!object.likes) object.likes = 0;
-    if (!object.title) return response.status(400).end();
+    if (!object.title) return response.status(400).json({ error: 'title ommitted!' });
 
     const user = request.user;
 
@@ -43,7 +43,7 @@ blogsRouter.post('/', async (request, response, next) => {
     }
 });
 
-blogsRouter.delete('/:id', async (req, res) => {
+blogsRouter.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
     try {
         await Blog.findByIdAndDelete(id);
@@ -54,12 +54,17 @@ blogsRouter.delete('/:id', async (req, res) => {
     }
 });
 
-blogsRouter.put('/:id', async (req, res) => {
-    const { id } = req.params;
-    let element = await Blog.findById(id);
-    element = { ...element._doc, likes: req.body.likes };
+blogsRouter.put('/', async (req, res, next) => {
+    let blog = req.body;
+    const id = blog.id;
+    blog = {
+        title: blog.title,
+        author: blog.author,
+        url: blog.url,
+        likes: blog.likes,
+    }
     try {
-        const final = await Blog.findByIdAndUpdate(id, element, { new: true });
+        const final = await Blog.findByIdAndUpdate(id, blog, { new: true });
         res.json(final);
         info('update blog successful');
     } catch (err) {
